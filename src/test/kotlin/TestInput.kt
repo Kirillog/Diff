@@ -7,7 +7,6 @@ internal class TestInput {
     private val testFile1 = File("test1.txt")
     private val testFile2 = File("test2.txt")
 
-
     @Test
     fun groupTestOfParcingArguments() {
 
@@ -17,13 +16,13 @@ internal class TestInput {
         var command = parseArguments(
             arrayOf(
                 "-brief",
-                "-matches",
+                "-common-lines",
                 "test1.txt",
                 "test2.txt"
             )
         )
         assertTrue(
-            (command.options["brief"] == true) and (command.options["matches"] == true)
+            (command.options["brief"] == true) and (command.options["common-lines"] == true)
                     and (command.options["unified"] == false) and (command.options["ignore-case"] == false)
         )
 
@@ -49,7 +48,7 @@ internal class TestInput {
         )
         assertTrue(
             (command.options["color"] == true) and (command.options["unified"] == true)
-                    and (command.options["brief"] == false) and (command.options["matches"] == false)
+                    and (command.options["brief"] == false) and (command.options["ignore-case"] == false)
         )
 
         testFile1.delete()

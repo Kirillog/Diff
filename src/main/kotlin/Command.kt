@@ -14,7 +14,7 @@ data class Command(
 fun parseArguments(args: Array<String>) : Command {
     val options = mutableMapOf(
         "brief" to false,
-        "matches" to false,
+        "common-lines" to false,
         "ignore-case" to false,
         "color" to false,
         "unified" to false
