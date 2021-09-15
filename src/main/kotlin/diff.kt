@@ -166,12 +166,25 @@ fun printDiff(oldFileLines: List<String>, newFileLines: List<String>, command: C
         } else {
             print("Files ${command.originalFileName} and ${command.newFileName} are identical")
         }
-    }
-    else if (command.options["common-lines"] == true){
+    } else if (command.options["common-lines"] == true) {
         for (i in commonLines)
             println(i)
-    }
-    else {
+    } else if (command.options["color"] == true) {
+        // ANSI codes
+        val reset = "\u001B[0m";
+        val red = "\u001B[31m";
+        val green = "\u001B[32m";
+        val blue = "\u001B[34m";
+        for (i in diffOutput)
+            println(
+                if (i.first() == '>')
+                    green + i + reset
+                else if (i.first() == '<')
+                    red + i + reset
+                else
+                    blue + i + reset
+            )
+    } else {
         for (i in diffOutput)
             println(i)
     }
