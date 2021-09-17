@@ -107,7 +107,7 @@ data class Block(
         for (i in output)
             result.addLine(i)
         for (i in oldFileSegment.right + 1 until nextBlock.oldFileSegment.left)
-            result.addLine(Line(oldFileLines[i - 1], Operation.KEEP))
+            result.addLine(Line(" " + oldFileLines[i - 1], Operation.KEEP))
         for (i in nextBlock.output)
             result.addLine(i)
         return result
@@ -177,13 +177,13 @@ fun convertActionsToUnifiedDiffOutput(
             diffOutput.add(Line(command, Operation.INFO))
             // add common lines at start
             for (i in leftBorder until currentBlock.oldFileSegment.left)
-                diffOutput.add(Line(oldFileLines[i - 1], Operation.KEEP))
+                diffOutput.add(Line(" " + oldFileLines[i - 1], Operation.KEEP))
             // add block lines
             for (i in currentBlock.output)
                 diffOutput.add(i)
             // add common lines at end
             for (i in currentBlock.oldFileSegment.right + 1..rightBorder)
-                diffOutput.add(Line(oldFileLines[i - 1], Operation.KEEP))
+                diffOutput.add(Line(" " + oldFileLines[i - 1], Operation.KEEP))
             currentBlock = block.copy()
         }
     }
@@ -227,7 +227,7 @@ fun convertActionsToSideBySideOutput(
         }
         // add deleted lines
         while (left1 <= right1) {
-            diffOutput.add(Line(oldFileLines[left1 - 1].padEnd(columnSize - 2) + "< ", Operation.DELETE))
+            diffOutput.add(Line(oldFileLines[left1 - 1].padEnd(columnSize - 2) + "<", Operation.DELETE))
             left1++
         }
         // add "added" lines
@@ -285,16 +285,16 @@ fun printDiff(oldFileLines: List<String>, newFileLines: List<String>, command: C
         for (i in diffOutput)
             println(
                 when (i.command) {
-                    Operation.ADD -> green + i + reset
-                    Operation.DELETE -> red + i + reset
-                    Operation.INFO -> purple + i + reset
-                    Operation.CHANGE -> blue + i + reset
-                    else -> white + i + reset
+                    Operation.ADD -> green + i.text + reset
+                    Operation.DELETE -> red + i.text + reset
+                    Operation.INFO -> purple + i.text + reset
+                    Operation.CHANGE -> blue + i.text + reset
+                    else -> white + i.text + reset
                 }
             )
     } else {
         for (i in diffOutput)
-            println(i)
+            println(i.text)
     }
 }
 
