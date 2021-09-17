@@ -2,7 +2,7 @@ import java.lang.Integer.max
 import java.lang.Integer.min
 
 enum class Operation {
-    ADD, DELETE, KEEP
+    ADD, DELETE, KEEP, CHANGE, INFO
 }
 
 enum class Move {
@@ -96,7 +96,20 @@ data class Segment(var left: Int, var right: Int) {
         else
             "$left,$right"
     }
+
+    fun goNext(fileActions: Array<Operation>, fileIterator: Int): Int {
+        var it = fileIterator
+        left = it + 1
+        // increment fileIterator while reach not keeping action
+        while (it <= fileActions.size && fileActions[it] != Operation.KEEP)
+            ++it
+        right = it
+        return it
+    }
 }
+
+data class Line(val text: String, val command: Operation)
+
 
 /** compares [oldFileActions] and [newFileActions] to convert to diff output
  * @return list of strings in normal diff output format
@@ -107,54 +120,49 @@ fun convertActionsToDiffOutput(
     newFileLines: List<String>,
     oldFileActions: Array<Operation>,
     newFileActions: Array<Operation>
-): List<String> {
+): List<Line> {
     var oldFileIterator = 0
     var newFileIterator = 0
     val endOldFile = oldFileActions.size
     val endNewFile = newFileActions.size
     val oldFileSegment = Segment(1, 0)
     val newFileSegment = Segment(1, 0)
-    val diffOutput = mutableListOf<String>()
-    // form segments between keep operations in each file
+    val diffOutput = mutableListOf<Line>()
+    // form segments Operation.KEEP, [segment], Operation.KEEP between keep operations in each file
     while (oldFileIterator != endOldFile || newFileIterator != endNewFile) {
-        // increment oldFileIterator and newFileIterator while reach not keeping action
-        while (oldFileIterator != endOldFile && oldFileActions[oldFileIterator] != Operation.KEEP)
-            ++oldFileIterator
-        while (newFileIterator != endNewFile && newFileActions[newFileIterator] != Operation.KEEP)
-            ++newFileIterator
-        oldFileSegment.right = oldFileIterator
-        newFileSegment.right = newFileIterator
+        // move segment to next segment the same format
+        oldFileIterator = oldFileSegment.goNext(oldFileActions, oldFileIterator)
+        newFileIterator = newFileSegment.goNext(newFileActions, newFileIterator)
         // decide what operation - 'a', 'd' or 'c' was applied
         // if lines from oldFile was deleted and lines from newFile was added then change operation
         if (!oldFileSegment.isEmpty() && !newFileSegment.isEmpty()) {
-            val command = "@@ " + oldFileSegment.toString() + "c" + newFileSegment.toString() + " @@"
-            diffOutput.add(command)
+            val command = oldFileSegment.toString() + "c" + newFileSegment.toString()
+            diffOutput.add(Line(command, Operation.INFO))
             for (i in oldFileSegment.left..oldFileSegment.right)
-                diffOutput.add("< " + oldFileLines[i - 1])
-            diffOutput.add("---")
+                diffOutput.add(Line("< " + oldFileLines[i - 1], Operation.DELETE))
+            diffOutput.add(Line("---", Operation.CHANGE))
             for (i in newFileSegment.left..newFileSegment.right)
-                diffOutput.add("> " + newFileLines[i - 1])
+                diffOutput.add(Line("> " + newFileLines[i - 1], Operation.ADD))
         }
         // else if lines from oldFile were deleted then delete operation
         else if (!oldFileSegment.isEmpty() && newFileSegment.isEmpty()) {
-            val command = "@@ " + oldFileSegment.toString() + "d" + newFileSegment.right.toString() + " @@"
-            diffOutput.add(command)
+            val command = oldFileSegment.toString() + "d" + newFileSegment.right.toString()
+            diffOutput.add(Line(command, Operation.INFO))
             for (i in oldFileSegment.left..oldFileSegment.right)
-                diffOutput.add("< " + oldFileLines[i - 1])
+                diffOutput.add(Line("< " + oldFileLines[i - 1], Operation.DELETE))
         }
         // else if lines from newFile were added them add operation
         else if (oldFileSegment.isEmpty() && !newFileSegment.isEmpty()) {
-            val command = "@@ " + oldFileSegment.right.toString() + "a" + newFileSegment.toString() + " @@"
-            diffOutput.add(command)
+            val command = oldFileSegment.right.toString() + "a" + newFileSegment.toString()
+            diffOutput.add(Line(command, Operation.INFO))
             for (i in newFileSegment.left..newFileSegment.right)
-                diffOutput.add("> " + newFileLines[i - 1])
+                diffOutput.add(Line("> " + newFileLines[i - 1], Operation.ADD))
         }
         if (oldFileIterator != endOldFile)
             ++oldFileIterator
         if (newFileIterator != endNewFile)
             ++newFileIterator
-        oldFileSegment.left = oldFileIterator + 1
-        newFileSegment.left = newFileIterator + 1
+
     }
     return diffOutput
 }
@@ -162,15 +170,15 @@ fun convertActionsToDiffOutput(
 data class Block(
     val oldFileSegment: Segment,
     val newFileSegment: Segment,
-    val outputLines: MutableList<String> = mutableListOf()
+    val output: MutableList<Line> = mutableListOf()
 ) {
 
-    fun add(line: String) {
-        outputLines.add(line)
+    fun addLine(line: Line) {
+        output.add(line)
     }
 
     fun isEmpty(): Boolean {
-        return outputLines.isEmpty()
+        return output.isEmpty()
     }
 
     fun merge(nextBlock: Block, oldFileLines: List<String>): Block {
@@ -178,12 +186,12 @@ data class Block(
             Segment(oldFileSegment.left, nextBlock.oldFileSegment.right),
             Segment(newFileSegment.left, nextBlock.newFileSegment.right)
         )
-        for (i in outputLines)
-            result.add(i)
+        for (i in output)
+            result.addLine(i)
         for (i in oldFileSegment.right + 1 until nextBlock.oldFileSegment.left)
-            result.add(oldFileLines[i - 1])
-        for (i in nextBlock.outputLines)
-            result.add(i)
+            result.addLine(Line(oldFileLines[i - 1], Operation.KEEP))
+        for (i in nextBlock.output)
+            result.addLine(i)
         return result
     }
 }
@@ -199,7 +207,7 @@ fun convertActionsToUnifiedDiffOutput(
     newFileLines: List<String>,
     oldFileActions: Array<Operation>,
     newFileActions: Array<Operation>
-): List<String> {
+): List<Line> {
     var oldFileIterator = 0
     var newFileIterator = 0
     val endOldFile = oldFileActions.size
@@ -207,31 +215,25 @@ fun convertActionsToUnifiedDiffOutput(
     val oldFileSegment = Segment(1, 0)
     val newFileSegment = Segment(1, 0)
     val outputBlocks = mutableListOf<Block>()
-    val diffOutput = mutableListOf<String>()
-    // form blocks of changed lines
+    val diffOutput = mutableListOf<Line>()
+    // form blocks of changed lines Operation.KEEP, [block], Operation.KEEP between keep operations in each file
     while (oldFileIterator != endOldFile || newFileIterator != endNewFile) {
-        // increment oldFileIterator and newFileIterator while reach not keeping action
-        while (oldFileIterator != endOldFile && oldFileActions[oldFileIterator] != Operation.KEEP)
-            ++oldFileIterator
-        while (newFileIterator != endNewFile && newFileActions[newFileIterator] != Operation.KEEP)
-            ++newFileIterator
-        oldFileSegment.right = oldFileIterator
-        newFileSegment.right = newFileIterator
+        // move segment to next segment the same format
+        oldFileIterator = oldFileSegment.goNext(oldFileActions, oldFileIterator)
+        newFileIterator = newFileSegment.goNext(newFileActions, newFileIterator)
         // if lines from oldFile was deleted or lines from newFile was added
         if (!oldFileSegment.isEmpty() || !newFileSegment.isEmpty()) {
             val block = Block(oldFileSegment.copy(), newFileSegment.copy())
             for (i in oldFileSegment.left..oldFileSegment.right)
-                block.add("-" + oldFileLines[i - 1])
+                block.addLine(Line("-" + oldFileLines[i - 1], Operation.DELETE))
             for (i in newFileSegment.left..newFileSegment.right)
-                block.add("+" + newFileLines[i - 1])
+                block.addLine(Line("+" + newFileLines[i - 1], Operation.ADD))
             outputBlocks.add(block)
         }
         if (oldFileIterator != endOldFile)
             ++oldFileIterator
         if (newFileIterator != endNewFile)
             ++newFileIterator
-        oldFileSegment.left = oldFileIterator + 1
-        newFileSegment.left = newFileIterator + 1
     }
     outputBlocks.add(Block(Segment(endOldFile + 2 * BORDER_SIZE + 1, 0), Segment(0, 0)))
     // merge blocks that have intersections
@@ -254,16 +256,16 @@ fun convertActionsToUnifiedDiffOutput(
 
             val command =
                 "@@ -$leftBorder,${rightBorder - leftBorder + 1} +$leftBorderNew,${rightBorderNew - leftBorderNew + 1} @@"
-            diffOutput.add(command)
+            diffOutput.add(Line(command, Operation.INFO))
             // add common lines at start
             for (i in leftBorder until currentBlock.oldFileSegment.left)
-                diffOutput.add(oldFileLines[i - 1])
+                diffOutput.add(Line(oldFileLines[i - 1], Operation.KEEP))
             // add block lines
-            for (i in currentBlock.outputLines)
+            for (i in currentBlock.output)
                 diffOutput.add(i)
             // add common lines at end
             for (i in currentBlock.oldFileSegment.right + 1..rightBorder)
-                diffOutput.add(oldFileLines[i - 1])
+                diffOutput.add(Line(oldFileLines[i - 1], Operation.KEEP))
             currentBlock = block.copy()
         }
     }
@@ -298,18 +300,16 @@ fun printDiff(oldFileLines: List<String>, newFileLines: List<String>, command: C
         val green = "\u001B[32m";
         val blue = "\u001B[34m";
         val white = "\u001B[37m";
+        val purple = "\u001B[35m"
         for (i in diffOutput)
             println(
-                if (i.isEmpty())
-                    i
-                else if (i.first() == '>' || i.first() == '+')
-                    green + i + reset
-                else if (i.first() == '<' || i.first() == '-')
-                    red + i + reset
-                else if (i.first() == '@')
-                    blue + i + reset
-                else
-                    white + i + reset
+                when (i.command) {
+                    Operation.ADD -> green + i + reset
+                    Operation.DELETE -> red + i + reset
+                    Operation.INFO -> purple + i + reset
+                    Operation.CHANGE -> blue + i + reset
+                    else -> white + i + reset
+                }
             )
     } else {
         for (i in diffOutput)
