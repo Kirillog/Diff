@@ -17,7 +17,8 @@ fun parseArguments(args: Array<String>) : Command {
         "common-lines" to false,
         "ignore-case" to false,
         "color" to false,
-        "unified" to false
+        "unified" to false,
+        "two-columns" to false
     )
     var originalFileName = ""
     var newFileName = ""

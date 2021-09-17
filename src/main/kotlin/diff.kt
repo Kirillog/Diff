@@ -272,6 +272,67 @@ fun convertActionsToUnifiedDiffOutput(
     return diffOutput
 }
 
+/** compares [oldFileActions] and [newFileActions] to convert to side by side output
+ * @return list of strings in side by side output
+ */
+
+fun convertActionsToSideBySideOutput(
+    oldFileLines: List<String>,
+    newFileLines: List<String>,
+    oldFileActions: Array<Operation>,
+    newFileActions: Array<Operation>
+): List<Line> {
+    var oldFileIterator = 0
+    var newFileIterator = 0
+    val columnSize = oldFileLines.maxOf { it.length } + 10
+    val endOldFile = oldFileActions.size
+    val endNewFile = newFileActions.size
+    val oldFileSegment = Segment(1, 0)
+    val newFileSegment = Segment(1, 0)
+    val diffOutput = mutableListOf<Line>()
+    // form segments between keep operations in each file
+    while (oldFileIterator != endOldFile || newFileIterator != endNewFile) {
+        oldFileIterator = oldFileSegment.goNext(oldFileActions, oldFileIterator)
+        newFileIterator = newFileSegment.goNext(newFileActions, newFileIterator)
+        // add changed lines
+        var (left1, right1) = oldFileSegment
+        var (left2, right2) = newFileSegment
+        while (left1 <= right1 && left2 <= right2) {
+            diffOutput.add(
+                Line(
+                    oldFileLines[left1 - 1].padEnd(columnSize - 2) + "| " + newFileLines[left2 - 1],
+                    Operation.CHANGE
+                )
+            )
+            left1++
+            left2++
+        }
+        // add deleted lines
+        while (left1 <= right1) {
+            diffOutput.add(Line(oldFileLines[left1 - 1].padEnd(columnSize - 2) + "< ", Operation.DELETE))
+            left1++
+        }
+        // add "added" lines
+        while (left2 <= right2) {
+            diffOutput.add(Line("> ".padStart(columnSize) + newFileLines[left2 - 1], Operation.ADD))
+            left2++
+        }
+        if (oldFileIterator != endOldFile && newFileIterator != endNewFile)
+            diffOutput.add(
+                Line(
+                    oldFileLines[oldFileIterator].padEnd(columnSize) + newFileLines[newFileIterator],
+                    Operation.KEEP
+                )
+            )
+
+        if (oldFileIterator != endOldFile)
+            ++oldFileIterator
+        if (newFileIterator != endNewFile)
+            ++newFileIterator
+
+    }
+    return diffOutput
+}
 
 /**prints normal diff output for [oldFileLines] and [newFileLines]
  *@params [command] defines options of command
@@ -282,6 +343,8 @@ fun printDiff(oldFileLines: List<String>, newFileLines: List<String>, command: C
     val commonLines = calculateLCS(oldFileLines, newFileLines, oldFileActions, newFileActions)
     val diffOutput = if (command.options["unified"] == true)
         convertActionsToUnifiedDiffOutput(oldFileLines, newFileLines, oldFileActions, newFileActions)
+    else if (command.options["two-columns"] == true)
+        convertActionsToSideBySideOutput(oldFileLines, newFileLines, oldFileActions, newFileActions)
     else
         convertActionsToDiffOutput(oldFileLines, newFileLines, oldFileActions, newFileActions)
     if (command.options["brief"] == true) {
