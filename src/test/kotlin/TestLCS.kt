@@ -1,54 +1,82 @@
+import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import kotlin.test.*
 
 class TestLCS {
     private fun <T> equalsOr(array1: Array<T>, array2: Array<T>, array3: Array<T>): Boolean {
-        return array1.contentEquals(array2) || array2.contentEquals(array3)
+        return array3.contentEquals(array1) || array3.contentEquals(array2)
     }
 
-    @Test
-    fun groupTestEmptyFiles() {
-        var first = Array(3) { Operation.KEEP }
-        var second = emptyArray<Operation>()
-        assertContentEquals(calculateLCS(listOf("A", "B", "C"), emptyList(), first, second), emptyList())
-        assertContentEquals(first, Array(3) { Operation.DELETE })
-        assertContentEquals(second, emptyArray())
+    @Nested
+    inner class GroupTestEmptyFiles {
+        private var first = Array(3) { Operation.KEEP }
+        private var second = emptyArray<Operation>()
 
-        first = second.also { second = first }
-        assertContentEquals(calculateLCS(emptyList(), listOf("A", "B", "C"), first, second), emptyList())
-        assertContentEquals(first, emptyArray())
-        assertContentEquals(second, Array(3) { Operation.ADD })
+        @Test
+        fun emptySecondFile() {
+            assertContentEquals(emptyList(), calculateLCS(listOf("A", "B", "C"), emptyList(), first, second))
+            assertContentEquals(Array(3) { Operation.DELETE }, first)
+            assertContentEquals(emptyArray(), second)
 
-        second = emptyArray()
-        assertContentEquals(calculateLCS(emptyList(), emptyList(), first, second), emptyList())
-        assertContentEquals(first, emptyArray())
-        assertContentEquals(second, emptyArray())
+        }
+
+        @Test
+        fun emptyFirstFile() {
+            first = second.also { second = first }
+            assertContentEquals(emptyList(), calculateLCS(emptyList(), listOf("A", "B", "C"), first, second))
+            assertContentEquals(emptyArray(), first)
+            assertContentEquals(Array(3) { Operation.ADD }, second)
+        }
+
+        @Test
+        fun emptyBothFiles() {
+            first = emptyArray()
+            assertContentEquals(emptyList(), calculateLCS(emptyList(), emptyList(), first, second))
+            assertContentEquals(emptyArray(), first)
+            assertContentEquals(emptyArray(), second)
+        }
 
     }
 
-    @Test
-    fun groupTestSmallLCS() {
-        val first = Array(3) { Operation.KEEP }
-        val second = Array(2) { Operation.KEEP }
-        assertContentEquals(calculateLCS(listOf("A", "B", "C"), listOf("A", "C"), first, second), listOf("A", "C"))
-        assertContentEquals(first, arrayOf(Operation.KEEP, Operation.DELETE, Operation.KEEP))
-        assertContentEquals(second, arrayOf(Operation.KEEP, Operation.KEEP))
+    @Nested
+    inner class GroupTestSmallLCS {
+        private val first = Array(3) { Operation.KEEP }
+        private val second = Array(2) { Operation.KEEP }
 
-        assertContentEquals(calculateLCS(listOf("A", "B", "C"), listOf("B", "D"), first, second), listOf("B"))
-        assertContentEquals(first, arrayOf(Operation.DELETE, Operation.KEEP, Operation.DELETE))
-        assertContentEquals(second, arrayOf(Operation.KEEP, Operation.ADD))
+        @Test
+        fun deleteCenterLine() {
+            assertContentEquals(listOf("A", "C"), calculateLCS(listOf("A", "B", "C"), listOf("A", "C"), first, second))
+            assertContentEquals(arrayOf(Operation.KEEP, Operation.DELETE, Operation.KEEP), first)
+            assertContentEquals(arrayOf(Operation.KEEP, Operation.KEEP), second)
+        }
 
-        assertContentEquals(calculateLCS(listOf("A", "B", "C"), listOf("C", "A"), first, second), listOf("C"))
-        assertContentEquals(first, arrayOf(Operation.DELETE, Operation.DELETE, Operation.KEEP))
-        assertContentEquals(second, arrayOf(Operation.KEEP, Operation.ADD))
+        @Test
+        fun changeLastLine() {
+            assertContentEquals(listOf("B"), calculateLCS(listOf("A", "B", "C"), listOf("B", "D"), first, second))
+            assertContentEquals(arrayOf(Operation.DELETE, Operation.KEEP, Operation.DELETE), first)
+            assertContentEquals(arrayOf(Operation.KEEP, Operation.ADD), second)
+        }
 
-        assertContentEquals(calculateLCS(listOf("A", "B", "C"), listOf("D", "E"), first, second), emptyList())
-        assertContentEquals(first, arrayOf(Operation.DELETE, Operation.DELETE, Operation.DELETE))
-        assertContentEquals(second, arrayOf(Operation.ADD, Operation.ADD))
+        @Test
+        fun deleteFirstAndAddLastLine() {
+            assertContentEquals(listOf("C"), calculateLCS(listOf("A", "B", "C"), listOf("C", "A"), first, second))
+            assertContentEquals(arrayOf(Operation.DELETE, Operation.DELETE, Operation.KEEP), first)
+            assertContentEquals(arrayOf(Operation.KEEP, Operation.ADD), second)
+        }
 
-        assertContentEquals(calculateLCS(listOf("A", "B", "C"), listOf("B", "B"), first, second), listOf("B"))
-        assertContentEquals(first, arrayOf(Operation.DELETE, Operation.KEEP, Operation.DELETE))
-        assertTrue(equalsOr(second, arrayOf(Operation.KEEP, Operation.ADD), arrayOf(Operation.ADD, Operation.KEEP)))
+        @Test
+        fun deleteAllAndAddAllLines() {
+            assertContentEquals(emptyList(), calculateLCS(listOf("A", "B", "C"), listOf("D", "E"), first, second))
+            assertContentEquals(arrayOf(Operation.DELETE, Operation.DELETE, Operation.DELETE), first)
+            assertContentEquals(arrayOf(Operation.ADD, Operation.ADD), second)
+        }
+
+        @Test
+        fun deleteFirstAndAddDoubleLine() {
+            assertContentEquals(listOf("B"), calculateLCS(listOf("A", "B", "C"), listOf("B", "B"), first, second))
+            assertContentEquals(arrayOf(Operation.DELETE, Operation.KEEP, Operation.DELETE), first)
+            assertTrue(equalsOr(arrayOf(Operation.KEEP, Operation.ADD), arrayOf(Operation.ADD, Operation.KEEP), second))
+        }
     }
 
     @Test
@@ -57,15 +85,15 @@ class TestLCS {
         val second = Array(7) { Operation.KEEP }
 
         assertContentEquals(
+            listOf("B", "D", "D", "E"),
             calculateLCS(
                 listOf("B", "B", "C", "D", "D", "E", "A"),
                 listOf("B", "D", "A", "E", "D", "E", "E"),
                 first,
                 second
-            ), listOf("B", "D", "D", "E")
+            )
         )
         assertContentEquals(
-            first,
             arrayOf(
                 Operation.DELETE,
                 Operation.KEEP,
@@ -74,10 +102,9 @@ class TestLCS {
                 Operation.KEEP,
                 Operation.KEEP,
                 Operation.DELETE
-            )
+            ), first
         )
         assertContentEquals(
-            second,
             arrayOf(
                 Operation.KEEP,
                 Operation.KEEP,
@@ -86,19 +113,19 @@ class TestLCS {
                 Operation.KEEP,
                 Operation.KEEP,
                 Operation.ADD
-            )
+            ), second
         )
 
         assertContentEquals(
+            listOf("C", "D", "C", "B", "D", "C"),
             calculateLCS(
                 listOf("C", "D", "A", "C", "B", "D", "C"),
                 listOf("C", "C", "D", "C", "B", "D", "C"),
                 first,
                 second
-            ), listOf("C", "D", "C", "B", "D", "C")
+            )
         )
         assertContentEquals(
-            first,
             arrayOf(
                 Operation.KEEP,
                 Operation.KEEP,
@@ -107,10 +134,9 @@ class TestLCS {
                 Operation.KEEP,
                 Operation.KEEP,
                 Operation.KEEP
-            )
+            ), first
         )
         assertContentEquals(
-            second,
             arrayOf(
                 Operation.ADD,
                 Operation.KEEP,
@@ -119,19 +145,19 @@ class TestLCS {
                 Operation.KEEP,
                 Operation.KEEP,
                 Operation.KEEP
-            )
+            ), second
         )
 
         assertContentEquals(
+            listOf("B", "D"),
             calculateLCS(
                 listOf("E", "E", "B", "B", "E", "B", "D"),
                 listOf("A", "B", "C", "A", "C", "D", "A"),
                 first,
                 second
-            ), listOf("B", "D")
+            )
         )
         assertContentEquals(
-            first,
             arrayOf(
                 Operation.DELETE,
                 Operation.DELETE,
@@ -140,10 +166,9 @@ class TestLCS {
                 Operation.DELETE,
                 Operation.KEEP,
                 Operation.KEEP
-            )
+            ), first
         )
         assertContentEquals(
-            second,
             arrayOf(
                 Operation.ADD,
                 Operation.KEEP,
@@ -152,7 +177,8 @@ class TestLCS {
                 Operation.ADD,
                 Operation.KEEP,
                 Operation.ADD
-            )
+            ),
+            second
         )
 
     }
