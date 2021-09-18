@@ -275,11 +275,11 @@ fun printDiff(oldFileLines: List<String>, newFileLines: List<String>, command: C
         commonLines.forEach { println(it) }
     } else if (command.options["color"] == true) {
         // ANSI codes
-        val reset = "\u001B[0m";
-        val red = "\u001B[31m";
-        val green = "\u001B[32m";
-        val blue = "\u001B[34m";
-        val white = "\u001B[37m";
+        val reset = "\u001B[0m"
+        val red = "\u001B[31m"
+        val green = "\u001B[32m"
+        val blue = "\u001B[34m"
+        val white = "\u001B[37m"
         val purple = "\u001B[35m"
         diffOutput.forEach { i ->
             println(
