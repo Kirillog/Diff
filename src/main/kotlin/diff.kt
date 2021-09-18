@@ -110,8 +110,6 @@ data class Block(
     }
 }
 
-const val BORDER_SIZE = 3
-
 /** compares [oldFileActions] and [newFileActions] to convert to diff output
  * @return list of strings in unified diff output format
  */
@@ -120,7 +118,8 @@ fun convertActionsToUnifiedDiffOutput(
     oldFileLines: List<String>,
     newFileLines: List<String>,
     oldFileActions: Array<Operation>,
-    newFileActions: Array<Operation>
+    newFileActions: Array<Operation>,
+    unifiedBorder: Int = 3
 ): List<Line> {
     var oldFileIterator = 0
     var newFileIterator = 0
@@ -149,7 +148,7 @@ fun convertActionsToUnifiedDiffOutput(
         if (newFileIterator != endNewFile)
             ++newFileIterator
     }
-    outputBlocks.add(Block(Segment(endOldFile + 2 * BORDER_SIZE + 1, 0), Segment(0, 0)))
+    outputBlocks.add(Block(Segment(endOldFile + 2 * unifiedBorder + 1, 0), Segment(0, 0)))
     // merge blocks that have intersections
     var currentBlock = Block(Segment(0, 0), Segment(0, 0))
     for (block in outputBlocks) {
@@ -157,16 +156,16 @@ fun convertActionsToUnifiedDiffOutput(
         if (currentBlock.isEmpty())
             currentBlock = block.copy()
         // else if blocks have intersections
-        else if (block.oldFileSegment.left - currentBlock.oldFileSegment.right <= 2 * BORDER_SIZE)
+        else if (block.oldFileSegment.left - currentBlock.oldFileSegment.right <= 2 * unifiedBorder)
             currentBlock = currentBlock.merge(block, oldFileLines)
         // else add block to output
         else {
             // calculate left border and right border of common lines of block
-            val leftBorder = max(1, currentBlock.oldFileSegment.left - BORDER_SIZE)
-            val rightBorder = min(endOldFile, currentBlock.oldFileSegment.right + BORDER_SIZE)
+            val leftBorder = max(1, currentBlock.oldFileSegment.left - unifiedBorder)
+            val rightBorder = min(endOldFile, currentBlock.oldFileSegment.right + unifiedBorder)
 
-            val leftBorderNew = max(1, currentBlock.newFileSegment.left - BORDER_SIZE)
-            val rightBorderNew = min(endNewFile, currentBlock.newFileSegment.right + BORDER_SIZE)
+            val leftBorderNew = max(1, currentBlock.newFileSegment.left - unifiedBorder)
+            val rightBorderNew = min(endNewFile, currentBlock.newFileSegment.right + unifiedBorder)
 
             val command =
                 "@@ -$leftBorder,${rightBorder - leftBorder + 1} +$leftBorderNew,${rightBorderNew - leftBorderNew + 1} @@"
@@ -255,7 +254,13 @@ fun printDiff(oldFileLines: List<String>, newFileLines: List<String>, command: C
     val newFileActions = Array(newFileLines.size) { Operation.KEEP }
     val commonLines = calculateLCS(oldFileLines, newFileLines, oldFileActions, newFileActions)
     val diffOutput = if (command.options["unified"] == true)
-        convertActionsToUnifiedDiffOutput(oldFileLines, newFileLines, oldFileActions, newFileActions)
+        convertActionsToUnifiedDiffOutput(
+            oldFileLines,
+            newFileLines,
+            oldFileActions,
+            newFileActions,
+            command.unifiedBorder
+        )
     else if (command.options["two-columns"] == true)
         convertActionsToSideBySideOutput(oldFileLines, newFileLines, oldFileActions, newFileActions)
     else

@@ -155,6 +155,27 @@ internal class TestDiff {
         private val second = Array(2) { Operation.KEEP }
 
         @Test
+        fun smallBorderOfEqualLines() {
+            calculateLCS(listOf("A", "B", "C"), listOf("A", "B"), first, second)
+            assertContentEquals(
+                diffOutput(
+                    convertActionsToUnifiedDiffOutput(
+                        listOf("A", "B", "C"),
+                        listOf("A", "B"),
+                        first,
+                        second,
+                        1
+                    )
+                ),
+                listOf(
+                    "@@ -2,2 +2,1 @@",
+                    " B",
+                    "-C"
+                )
+            )
+        }
+
+        @Test
         fun deleteCenterLine() {
             calculateLCS(listOf("A", "B", "C"), listOf("A", "C"), first, second)
             assertContentEquals(

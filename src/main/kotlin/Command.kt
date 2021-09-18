@@ -1,14 +1,16 @@
 import java.io.File
 import java.io.IOException
 import java.util.*
+import kotlin.system.exitProcess
 
 const val FLAG = '-'
 
 data class Command(
     var options: MutableMap<String, Boolean>,
     var originalFileName: String,
-    var newFileName: String
-)
+    var newFileName: String,
+    var unifiedBorder: Int = 3
+    )
 
 /** reads program arguments from input
  *@param args array of arguments
@@ -22,9 +24,11 @@ fun parseArguments(args: Array<String>): Command {
         "ignore-case" to false,
         "color" to false,
         "unified" to false,
-        "two-columns" to false
+        "two-columns" to false,
+        "exit" to false
     )
     var originalFileName = ""
+    var unifiedBorder = 3
     var newFileName = ""
     var firstFileIsSpecified = false
     var secondFileIsSpecified = false
@@ -32,10 +36,18 @@ fun parseArguments(args: Array<String>): Command {
         args.forEach { argument ->
             if (argument.first() == FLAG) {
                 val option = argument.drop(1)
-                if (!options.containsKey(option))
+                if (option.startsWith("unified=")){
+                    options["unified"] = true
+                    val num = option.dropWhile { !it.isDigit() }
+                    if (num.isEmpty())
+                        throw IOException("unified=NUM where NUM is number")
+                    unifiedBorder = num.toInt()
+                }
+                else if (!options.containsKey(option))
                     throw IOException("Invalid option -- $option")
                 else
                     options[option] = true
+
             } else if (!firstFileIsSpecified) {
                 if (File(argument).exists())
                     originalFileName = argument
@@ -56,8 +68,9 @@ fun parseArguments(args: Array<String>): Command {
             throw IOException("Missing operand after 'diff'")
     } catch (error: IOException) {
         System.err.println(error.message)
+        options["exit"] = true
     }
-    return Command(options, originalFileName, newFileName)
+    return Command(options, originalFileName, newFileName, unifiedBorder)
 }
 
 /** read strings from fileName line by line
