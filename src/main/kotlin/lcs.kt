@@ -15,11 +15,6 @@ data class Cell(var x: Int, var y: Int) {
     }
 
     override operator fun equals(other: Any?): Boolean = other is Cell && x == other.x && y == other.y
-    override fun hashCode(): Int {
-        var result = x
-        result = 31 * result + y
-        return result
-    }
 
 }
 
@@ -59,21 +54,23 @@ fun calculateLCS(
                 lengthOfLCS[i][j] = lengthOfLCS[i][j - 1]
                 previousStep[i][j] = Move.LEFT
             }
-
     // calculate lines of lcs using previous steps
     val commonLines = MutableList(lengthOfLCS[oldFileSize][newFileSize]) { "" }
     val currentCell = Cell(oldFileSize, newFileSize)
     val zeroCell = Cell(0, 0)
     while (currentCell != zeroCell) {
         val (x, y) = currentCell
-        if (previousStep[x][y] == Move.UPNLEFT) {
-            oldFileActions[x - 1] = Operation.KEEP
-            newFileActions[y - 1] = Operation.KEEP
-            commonLines[lengthOfLCS[x][y] - 1] = oldFileLines[x - 1]
-        } else if (previousStep[x][y] == Move.UP) {
-            oldFileActions[x - 1] = Operation.DELETE
-        } else {
-            newFileActions[y - 1] = Operation.ADD
+        when (previousStep[x][y]) {
+            Move.UPNLEFT -> {
+                oldFileActions[x - 1] = Operation.KEEP
+                newFileActions[y - 1] = Operation.KEEP
+                commonLines[lengthOfLCS[x][y] - 1] = oldFileLines[x - 1]
+            }
+            Move.UP ->
+                oldFileActions[x - 1] = Operation.DELETE
+            Move.LEFT ->
+                newFileActions[y - 1] = Operation.ADD
+
         }
         currentCell += previousStep[x][y]
     }

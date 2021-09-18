@@ -12,6 +12,7 @@ repositories {
 
 dependencies {
     implementation(kotlin("stdlib"))
+    implementation("org.testng:testng:7.4.0")
     testImplementation(kotlin("test"))
 }
 

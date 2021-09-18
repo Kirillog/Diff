@@ -1,14 +1,23 @@
-import org.junit.jupiter.api.assertThrows
-import java.io.File
-import java.io.IOException
+import java.io.*
 import kotlin.test.*
 
 internal class TestInput {
     private val testFile1 = File("test1.txt")
     private val testFile2 = File("test2.txt")
+    private val standardErr = System.err
+    private val stream = ByteArrayOutputStream()
 
+    @BeforeTest
+    fun setUp() {
+        System.setErr(PrintStream(stream))
+    }
+
+    @AfterTest
+    fun tearDown() {
+        System.setErr(standardErr)
+    }
     @Test
-    fun groupTestOfParcingArguments() {
+    fun groupTestOfParsingArguments() {
 
         testFile1.createNewFile()
         testFile2.createNewFile()
@@ -26,17 +35,19 @@ internal class TestInput {
                     and (command.options["unified"] == false) and (command.options["ignore-case"] == false)
         )
 
-        assertThrows<IOException> {
-            parseArguments(
-                arrayOf(
-                    "-color",
-                    "-ignore-case",
-                    "-unique",
-                    "test1.txt",
-                    "test2.txt"
-                )
+        parseArguments(
+            arrayOf(
+                "-color",
+                "-ignore-case",
+                "-unique",
+                "test1.txt",
+                "test2.txt"
             )
-        }
+        )
+
+        assertEquals(
+            "Invalid option -- unique", stream.toString().trim()
+        )
 
         command = parseArguments(
             arrayOf(
@@ -61,41 +72,40 @@ internal class TestInput {
         testFile1.createNewFile()
         testFile2.createNewFile()
 
-        assertThrows<IOException> {
-            parseArguments(
-                arrayOf(
-                    "notTested.txt",
-                    "test2.txt"
-                )
+        parseArguments(
+            arrayOf(
+                "notTested.txt",
+                "test2.txt"
             )
-        }
-        assertThrows<IOException> {
-            parseArguments(
-                arrayOf(
-                    "test1.txt",
-                    "notTested.txt"
-                )
-            )
-        }
+        )
+        assertEquals(stream.toString().trim(), "notTested.txt: No such file or directory")
+        stream.reset()
 
-        assertThrows<IOException> {
-            parseArguments(
-                arrayOf(
-                    "test1.txt"
-                )
+        parseArguments(
+            arrayOf(
+                "test1.txt",
+                "notTested.txt"
             )
-        }
+        )
+        assertEquals(stream.toString().trim(), "notTested.txt: No such file or directory")
+        stream.reset()
 
-        assertThrows<IOException> {
-            parseArguments(
-                arrayOf(
-                    "test1.txt",
-                    "test2.txt",
-                    "test3.txt"
-                )
+        parseArguments(
+            arrayOf(
+                "test1.txt"
             )
-        }
+        )
+        assertEquals(stream.toString().trim(), "Missing operand after 'diff'")
+        stream.reset()
 
+        parseArguments(
+            arrayOf(
+                "test1.txt",
+                "test2.txt",
+                "test3.txt"
+            )
+        )
+        assertEquals(stream.toString().trim(), "Extra operand 'test3.txt'")
         testFile1.delete()
         testFile2.delete()
     }

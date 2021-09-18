@@ -95,21 +95,17 @@ data class Block(
         output.add(line)
     }
 
-    fun isEmpty(): Boolean {
-        return output.isEmpty()
-    }
+    fun isEmpty() = output.isEmpty()
 
     fun merge(nextBlock: Block, oldFileLines: List<String>): Block {
         val result = Block(
             Segment(oldFileSegment.left, nextBlock.oldFileSegment.right),
             Segment(newFileSegment.left, nextBlock.newFileSegment.right)
         )
-        for (i in output)
-            result.addLine(i)
+        output.forEach { result.addLine(it) }
         for (i in oldFileSegment.right + 1 until nextBlock.oldFileSegment.left)
             result.addLine(Line(" " + oldFileLines[i - 1], Operation.KEEP))
-        for (i in nextBlock.output)
-            result.addLine(i)
+        nextBlock.output.forEach { result.addLine(it) }
         return result
     }
 }
@@ -179,8 +175,7 @@ fun convertActionsToUnifiedDiffOutput(
             for (i in leftBorder until currentBlock.oldFileSegment.left)
                 diffOutput.add(Line(" " + oldFileLines[i - 1], Operation.KEEP))
             // add block lines
-            for (i in currentBlock.output)
-                diffOutput.add(i)
+            currentBlock.output.forEach { diffOutput.add(it) }
             // add common lines at end
             for (i in currentBlock.oldFileSegment.right + 1..rightBorder)
                 diffOutput.add(Line(" " + oldFileLines[i - 1], Operation.KEEP))
@@ -272,8 +267,7 @@ fun printDiff(oldFileLines: List<String>, newFileLines: List<String>, command: C
             print("Files ${command.originalFileName} and ${command.newFileName} are identical")
         }
     } else if (command.options["common-lines"] == true) {
-        for (i in commonLines)
-            println(i)
+        commonLines.forEach { println(it) }
     } else if (command.options["color"] == true) {
         // ANSI codes
         val reset = "\u001B[0m";
@@ -282,7 +276,7 @@ fun printDiff(oldFileLines: List<String>, newFileLines: List<String>, command: C
         val blue = "\u001B[34m";
         val white = "\u001B[37m";
         val purple = "\u001B[35m"
-        for (i in diffOutput)
+        diffOutput.forEach { i ->
             println(
                 when (i.command) {
                     Operation.ADD -> green + i.text + reset
@@ -292,9 +286,9 @@ fun printDiff(oldFileLines: List<String>, newFileLines: List<String>, command: C
                     else -> white + i.text + reset
                 }
             )
+        }
     } else {
-        for (i in diffOutput)
-            println(i.text)
+        diffOutput.forEach { println(it.text) }
     }
 }
 
