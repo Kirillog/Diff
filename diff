@@ -1,0 +1,2 @@
+#!/bin/bash
+./gradlew -q run --args="$*" || (kotlinc src\main\kotlin -include-runtime -d diff.jar && java -jar diff.jar $*)
