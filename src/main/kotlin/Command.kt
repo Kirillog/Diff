@@ -10,7 +10,7 @@ data class Command(
     var originalFileName: String,
     var newFileName: String,
     var unifiedBorder: Int = 3
-    )
+)
 
 /** reads program arguments from input
  *@param args array of arguments
@@ -34,34 +34,36 @@ fun parseArguments(args: Array<String>): Command {
     var secondFileIsSpecified = false
     try {
         args.forEach { argument ->
-            if (argument.first() == FLAG) {
-                val option = argument.drop(1)
-                if (option.startsWith("unified=")){
-                    options["unified"] = true
-                    val num = option.dropWhile { !it.isDigit() }
-                    if (num.isEmpty())
-                        throw IOException("unified=NUM where NUM is number")
-                    unifiedBorder = num.toInt()
+            when {
+                argument.first() == FLAG -> {
+                    val option = argument.drop(1)
+                    if (option.startsWith("unified=")) {
+                        options["unified"] = true
+                        val num = option.dropWhile { !it.isDigit() }
+                        if (num.isEmpty())
+                            throw IOException("unified=NUM where NUM is number")
+                        unifiedBorder = num.toInt()
+                    } else if (!options.containsKey(option))
+                        throw IOException("Invalid option -- $option")
+                    else
+                        options[option] = true
                 }
-                else if (!options.containsKey(option))
-                    throw IOException("Invalid option -- $option")
-                else
-                    options[option] = true
-
-            } else if (!firstFileIsSpecified) {
-                if (File(argument).exists())
-                    originalFileName = argument
-                else
-                    throw IOException("$argument: No such file or directory")
-                firstFileIsSpecified = true
-            } else if (!secondFileIsSpecified) {
-                if (File(argument).exists())
-                    newFileName = argument
-                else
-                    throw IOException("$argument: No such file or directory")
-                secondFileIsSpecified = true
-            } else {
-                throw IOException("Extra operand '$argument'")
+                !firstFileIsSpecified -> {
+                    if (File(argument).exists())
+                        originalFileName = argument
+                    else
+                        throw IOException("$argument: No such file or directory")
+                    firstFileIsSpecified = true
+                }
+                !secondFileIsSpecified -> {
+                    if (File(argument).exists())
+                        newFileName = argument
+                    else
+                        throw IOException("$argument: No such file or directory")
+                    secondFileIsSpecified = true
+                }
+                else ->
+                    throw IOException("Extra operand '$argument'")
             }
         }
         if (!secondFileIsSpecified)
