@@ -185,7 +185,7 @@ fun convertActionsToUnifiedDiffOutput(
 }
 
 /** compares [oldFileActions] and [newFileActions] to convert to side by side output
- * @return list of strings in side by side output
+ *
  */
 
 fun convertActionsToSideBySideOutput(
@@ -246,54 +246,65 @@ fun convertActionsToSideBySideOutput(
     return diffOutput
 }
 
-/**prints normal diff output for [oldFileLines] and [newFileLines]
- *@params [command] defines options of command
+/**computes different types of diff output for [oldFileLines] and [newFileLines] depending on enabled [command] options
+ *
  */
-fun printDiff(oldFileLines: List<String>, newFileLines: List<String>, command: Command) {
+
+fun computeDiff(oldFileLines: List<String>, newFileLines: List<String>, command: Command): List<Line> {
     val oldFileActions = Array(oldFileLines.size) { Operation.KEEP }
     val newFileActions = Array(newFileLines.size) { Operation.KEEP }
     val commonLines = calculateLCS(oldFileLines, newFileLines, oldFileActions, newFileActions)
-    val diffOutput = if (command.options["unified"] == true)
-        convertActionsToUnifiedDiffOutput(
-            oldFileLines,
-            newFileLines,
-            oldFileActions,
-            newFileActions,
-            command.unifiedBorder
-        )
-    else if (command.options["two-columns"] == true)
-        convertActionsToSideBySideOutput(oldFileLines, newFileLines, oldFileActions, newFileActions)
-    else
-        convertActionsToDiffOutput(oldFileLines, newFileLines, oldFileActions, newFileActions)
-    if (command.options["brief"] == true) {
-        if (diffOutput.isNotEmpty()) {
-            print("Files ${command.originalFileName} and ${command.newFileName} differ")
-        } else {
-            print("Files ${command.originalFileName} and ${command.newFileName} are identical")
-        }
-    } else if (command.options["common-lines"] == true) {
-        commonLines.forEach { println(it) }
-    } else if (command.options["color"] == true) {
-        // ANSI codes
-        val reset = "\u001B[0m"
-        val red = "\u001B[31m"
-        val green = "\u001B[32m"
-        val blue = "\u001B[34m"
-        val white = "\u001B[37m"
-        val purple = "\u001B[35m"
-        diffOutput.forEach { i ->
-            println(
-                when (i.command) {
-                    Operation.ADD -> green + i.text + reset
-                    Operation.DELETE -> red + i.text + reset
-                    Operation.INFO -> purple + i.text + reset
-                    Operation.CHANGE -> blue + i.text + reset
-                    else -> white + i.text + reset
-                }
+    return when {
+        command.options["unified"] == true ->
+            convertActionsToUnifiedDiffOutput(
+                oldFileLines,
+                newFileLines,
+                oldFileActions,
+                newFileActions,
+                command.unifiedBorder
             )
+        command.options["two-columns"] == true ->
+            convertActionsToSideBySideOutput(oldFileLines, newFileLines, oldFileActions, newFileActions)
+        command.options["common-lines"] == true ->
+            commonLines.map { Line(it, Operation.KEEP) }
+        else ->
+            convertActionsToDiffOutput(oldFileLines, newFileLines, oldFileActions, newFileActions)
+    }
+}
+
+/**prints normal [diffOutput]
+ *@params [command] defines whether output be brief or color
+ */
+fun printDiff(diffOutput: List<Line>, command: Command) {
+    when {
+        command.options["brief"] == true ->
+            if (diffOutput.isNotEmpty()) {
+                print("Files ${command.originalFileName} and ${command.newFileName} differ")
+            } else {
+                print("Files ${command.originalFileName} and ${command.newFileName} are identical")
+            }
+        command.options["color"] == true -> {
+            // ANSI codes
+            val reset = "\u001B[0m"
+            val red = "\u001B[31m"
+            val green = "\u001B[32m"
+            val blue = "\u001B[34m"
+            val white = "\u001B[37m"
+            val purple = "\u001B[35m"
+            diffOutput.forEach { i ->
+                println(
+                    when (i.command) {
+                        Operation.ADD -> green + i.text + reset
+                        Operation.DELETE -> red + i.text + reset
+                        Operation.INFO -> purple + i.text + reset
+                        Operation.CHANGE -> blue + i.text + reset
+                        else -> white + i.text + reset
+                    }
+                )
+            }
         }
-    } else {
-        diffOutput.forEach { println(it.text) }
+        else ->
+            diffOutput.forEach { println(it.text) }
     }
 }
 

@@ -6,5 +6,6 @@ fun main(args: Array<String>) {
         exitProcess(0)
     val linesOriginal = readFile(command.originalFileName, command.options["ignore-case"] ?: false)
     val linesNew = readFile(command.newFileName, command.options["ignore-case"] ?: false)
-    printDiff(linesOriginal, linesNew, command)
+    val diffOutput = computeDiff(linesOriginal, linesNew, command)
+    printDiff(diffOutput, command)
 }
