@@ -253,7 +253,15 @@ fun convertActionsToSideBySideOutput(
 fun computeDiff(oldFileLines: List<String>, newFileLines: List<String>, command: Command): List<Line> {
     val oldFileActions = Array(oldFileLines.size) { Operation.KEEP }
     val newFileActions = Array(newFileLines.size) { Operation.KEEP }
-    val commonLines = calculateLCS(oldFileLines, newFileLines, oldFileActions, newFileActions)
+    val commonLines = if (command.options["ignore-case"] == true)
+        calculateLCS(
+            oldFileLines.map { it.lowercase() },
+            newFileLines.map { it.lowercase() },
+            oldFileActions,
+            newFileActions
+        )
+    else
+        calculateLCS(oldFileLines, newFileLines, oldFileActions, newFileActions)
     return when {
         command.options["unified"] == true ->
             convertActionsToUnifiedDiffOutput(

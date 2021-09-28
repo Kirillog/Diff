@@ -358,13 +358,9 @@ internal class TestDiff {
         fun differentFiles() {
             testFile1.writeText(originalFileText)
             testFile2.writeText(newFileText)
-            printDiff(
-                originalFileText.split("\n"), newFileText.split("\n"), Command(
-                    mutableMapOf(
-                        "brief" to true
-                    ), testFile1.name, testFile2.name
-                )
-            )
+            val command = Command(mutableMapOf("brief" to true), testFile1.name, testFile2.name)
+            val diff = computeDiff(originalFileText.split("\n"), newFileText.split("\n"), command)
+            printDiff(diff, command)
             assertEquals("Files ${testFile1.name} and ${testFile2.name} differ", stream.toString().trim())
         }
 
@@ -372,13 +368,9 @@ internal class TestDiff {
         fun equalFiles() {
             testFile1.writeText(originalFileText)
             testFile2.writeText(originalFileText)
-            printDiff(
-                originalFileText.split("\n"), originalFileText.split("\n"), Command(
-                    mutableMapOf(
-                        "brief" to true
-                    ), testFile1.name, testFile2.name
-                )
-            )
+            val command = Command(mutableMapOf("brief" to true), testFile1.name, testFile2.name)
+            val diff = computeDiff(originalFileText.split("\n"), originalFileText.split("\n"), command)
+            printDiff(diff, command)
             assertEquals("Files ${testFile1.name} and ${testFile2.name} are identical", stream.toString().trim())
         }
     }
@@ -403,13 +395,9 @@ internal class TestDiff {
         fun differentFiles() {
             testFile1.writeText(originalFileText)
             testFile2.writeText(newFileText)
-            printDiff(
-                originalFileText.split("\n"), newFileText.split("\n"), Command(
-                    mutableMapOf(
-                        "common-lines" to true
-                    ), testFile1.name, testFile2.name
-                )
-            )
+            val command = Command(mutableMapOf("common-lines" to true), testFile1.name, testFile2.name)
+            val diff = computeDiff(originalFileText.split("\n"), newFileText.split("\n"), command)
+            printDiff(diff, command)
             assertEquals("Some text", stream.toString().trim().lines().joinToString("\n"))
         }
 
@@ -417,14 +405,54 @@ internal class TestDiff {
         fun equalFiles() {
             testFile1.writeText(originalFileText)
             testFile2.writeText(originalFileText)
-            printDiff(
-                originalFileText.split("\n"), originalFileText.split("\n"), Command(
-                    mutableMapOf(
-                        "common-lines" to true
-                    ), testFile1.name, testFile2.name
-                )
-            )
+            val command = Command(mutableMapOf("common-lines" to true), testFile1.name, testFile2.name)
+            val diff = computeDiff(originalFileText.split("\n"), originalFileText.split("\n"), command)
+            printDiff(diff, command)
             assertEquals(originalFileText, stream.toString().trim().lines().joinToString("\n"))
+        }
+    }
+
+    @Nested
+    inner class IgnoreCaseTest {
+        private val originalFileText = """
+            Some text
+            Some other tExt
+        """.trimIndent()
+        private val newFileText = """
+            Some text
+            soMe otHer text
+        """.trimIndent()
+
+        @BeforeEach
+        fun reset() {
+            stream.reset()
+        }
+
+        @Test
+        fun differentFiles() {
+            testFile1.writeText(originalFileText)
+            testFile2.writeText(newFileText)
+            val command = Command(mutableMapOf("ignore-case" to false), testFile1.name, testFile2.name)
+            val diff = computeDiff(originalFileText.split("\n"), newFileText.split("\n"), command)
+            printDiff(diff, command)
+            assertEquals(
+                """
+                2c2
+                < Some other tExt
+                ---
+                > soMe otHer text
+                """.trimIndent(), stream.toString().trim()
+            )
+        }
+
+        @Test
+        fun equalFiles() {
+            testFile1.writeText(originalFileText)
+            testFile2.writeText(originalFileText)
+            val command = Command(mutableMapOf("ignore-case" to true), testFile1.name, testFile2.name)
+            val diff = computeDiff(originalFileText.split("\n"), originalFileText.split("\n"), command)
+            printDiff(diff, command)
+            assertEquals("", stream.toString().trim())
         }
     }
 

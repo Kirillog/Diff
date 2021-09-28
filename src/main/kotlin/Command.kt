@@ -75,20 +75,13 @@ fun parseArguments(args: Array<String>): Command {
     return Command(options, originalFileName, newFileName, unifiedBorder)
 }
 
-/** read strings from fileName line by line
- * @param lowerCase true when option ignore case is enabled
- * @return list of lines of file
+/** return list of lines of [fileName] line by line
  */
-fun readFile(fileName: String, lowerCase: Boolean): List<String> {
+fun readFile(fileName: String): List<String> {
     val lineList = mutableListOf<String>()
     File(fileName).useLines { lines ->
         lines.forEach {
-            lineList.add(
-                if (lowerCase)
-                    it.lowercase(Locale.getDefault())
-                else
-                    it
-            )
+            lineList.add(it)
         }
     }
     return lineList

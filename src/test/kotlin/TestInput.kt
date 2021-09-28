@@ -100,8 +100,7 @@ internal class TestInput {
             excluding me.
         """.trimIndent()
         testFile1.writeText(text)
-        assertContentEquals(text.split("\n"), readFile(testFile1.name, false))
-        assertContentEquals(text.lowercase(Locale.getDefault()).split("\n"), readFile(testFile1.name, true))
+        assertContentEquals(text.split("\n"), readFile(testFile1.name))
     }
 
     @Nested
