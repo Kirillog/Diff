@@ -4,7 +4,7 @@ import java.io.*
 import kotlin.test.*
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-internal class TestDiff {
+class TestDiff {
     private val testFile1 = File("test1.txt")
     private val testFile2 = File("test2.txt")
     private val standardOut = System.out
@@ -27,14 +27,12 @@ internal class TestDiff {
 
     @Nested
     inner class GroupTestEmptyFilesDiff {
-        private var first = Array(3) { Operation.KEEP }
-        private var second = emptyArray<Operation>()
+        private val command = Command(mutableMapOf())
 
         @Test
         fun emptySecondFile() {
-            calculateLCS(listOf("A", "B", "C"), emptyList(), first, second)
             assertContentEquals(
-                diffOutput(convertActionsToDiffOutput(listOf("A", "B", "C"), emptyList(), first, second)), listOf(
+                diffOutput(computeDiff(listOf("A", "B", "C"), emptyList(), command)), listOf(
                     "1,3d0",
                     "< A",
                     "< B",
@@ -45,10 +43,8 @@ internal class TestDiff {
 
         @Test
         fun emptyFirstFile() {
-            first = second.also { second = first }
-            calculateLCS(emptyList(), listOf("A", "B", "C"), first, second)
             assertContentEquals(
-                diffOutput(convertActionsToDiffOutput(emptyList(), listOf("A", "B", "C"), first, second)), listOf(
+                diffOutput(computeDiff(emptyList(), listOf("A", "B", "C"), command)), listOf(
                     "0a1,3",
                     "> A",
                     "> B",
@@ -59,29 +55,24 @@ internal class TestDiff {
 
         @Test
         fun emptyBothFiles() {
-            first = emptyArray()
-            calculateLCS(emptyList(), emptyList(), first, second)
             assertContentEquals(
-                convertActionsToDiffOutput(emptyList(), emptyList(), first, second), emptyList()
+                computeDiff(emptyList(), emptyList(), command), emptyList()
             )
         }
     }
 
     @Nested
     inner class GroupTestDiff {
-        private val first = Array(3) { Operation.KEEP }
-        private val second = Array(2) { Operation.KEEP }
+        private val command = Command(mutableMapOf())
 
         @Test
         fun deleteCenterLine() {
-            calculateLCS(listOf("A", "B", "C"), listOf("A", "C"), first, second)
             assertContentEquals(
                 diffOutput(
-                    convertActionsToDiffOutput(
+                    computeDiff(
                         listOf("A", "B", "C"),
                         listOf("A", "C"),
-                        first,
-                        second
+                        command
                     )
                 ),
                 listOf("2d1", "< B")
@@ -90,9 +81,8 @@ internal class TestDiff {
 
         @Test
         fun changeLastLine() {
-            calculateLCS(listOf("A", "B", "C"), listOf("B", "D"), first, second)
             assertContentEquals(
-                diffOutput(convertActionsToDiffOutput(listOf("A", "B", "C"), listOf("B", "D"), first, second)), listOf(
+                diffOutput(computeDiff(listOf("A", "B", "C"), listOf("B", "D"), command)), listOf(
                     "1d0",
                     "< A",
                     "3c2",
@@ -105,9 +95,8 @@ internal class TestDiff {
 
         @Test
         fun deleteFirstAndAddLastLine() {
-            calculateLCS(listOf("A", "B", "C"), listOf("C", "A"), first, second)
             assertContentEquals(
-                diffOutput(convertActionsToDiffOutput(listOf("A", "B", "C"), listOf("C", "A"), first, second)), listOf(
+                diffOutput(computeDiff(listOf("A", "B", "C"), listOf("C", "A"), command)), listOf(
                     "1,2d0",
                     "< A",
                     "< B",
@@ -119,9 +108,8 @@ internal class TestDiff {
 
         @Test
         fun deleteAllAndAddAllLines() {
-            calculateLCS(listOf("A", "B", "C"), listOf("D", "E"), first, second)
             assertContentEquals(
-                diffOutput(convertActionsToDiffOutput(listOf("A", "B", "C"), listOf("D", "E"), first, second)), listOf(
+                diffOutput(computeDiff(listOf("A", "B", "C"), listOf("D", "E"), command)), listOf(
                     "1,3c1,2",
                     "< A",
                     "< B",
@@ -135,9 +123,8 @@ internal class TestDiff {
 
         @Test
         fun deleteFirstAndAddDoubleLine() {
-            calculateLCS(listOf("A", "B", "C"), listOf("B", "B"), first, second)
             assertContentEquals(
-                diffOutput(convertActionsToDiffOutput(listOf("A", "B", "C"), listOf("B", "B"), first, second)), listOf(
+                diffOutput(computeDiff(listOf("A", "B", "C"), listOf("B", "B"), command)), listOf(
                     "1d0",
                     "< A",
                     "3c2",
@@ -151,20 +138,17 @@ internal class TestDiff {
 
     @Nested
     inner class GroupTestUnifiedDiff {
-        private val first = Array(3) { Operation.KEEP }
-        private val second = Array(2) { Operation.KEEP }
+        private val command = Command(mutableMapOf("unified" to true))
 
         @Test
         fun smallBorderOfEqualLines() {
-            calculateLCS(listOf("A", "B", "C"), listOf("A", "B"), first, second)
+            command.unifiedBorder = 1
             assertContentEquals(
                 diffOutput(
-                    convertActionsToUnifiedDiffOutput(
+                    computeDiff(
                         listOf("A", "B", "C"),
                         listOf("A", "B"),
-                        first,
-                        second,
-                        1
+                        command
                     )
                 ),
                 listOf(
@@ -177,14 +161,12 @@ internal class TestDiff {
 
         @Test
         fun deleteCenterLine() {
-            calculateLCS(listOf("A", "B", "C"), listOf("A", "C"), first, second)
             assertContentEquals(
                 diffOutput(
-                    convertActionsToUnifiedDiffOutput(
+                    computeDiff(
                         listOf("A", "B", "C"),
                         listOf("A", "C"),
-                        first,
-                        second
+                        command
                     )
                 ),
                 listOf(
@@ -198,9 +180,8 @@ internal class TestDiff {
 
         @Test
         fun changeLastLine() {
-            calculateLCS(listOf("A", "B", "C"), listOf("B", "D"), first, second)
             assertContentEquals(
-                diffOutput(convertActionsToUnifiedDiffOutput(listOf("A", "B", "C"), listOf("B", "D"), first, second)),
+                diffOutput(computeDiff(listOf("A", "B", "C"), listOf("B", "D"), command)),
                 listOf(
                     "@@ -1,3 +1,2 @@",
                     "-A",
@@ -213,9 +194,8 @@ internal class TestDiff {
 
         @Test
         fun deleteFirstAndAddLastLine() {
-            calculateLCS(listOf("A", "B", "C"), listOf("C", "A"), first, second)
             assertContentEquals(
-                diffOutput(convertActionsToUnifiedDiffOutput(listOf("A", "B", "C"), listOf("C", "A"), first, second)),
+                diffOutput(computeDiff(listOf("A", "B", "C"), listOf("C", "A"), command)),
                 listOf(
                     "@@ -1,3 +1,2 @@",
                     "-A",
@@ -228,9 +208,8 @@ internal class TestDiff {
 
         @Test
         fun deleteAllAndAddAllLines() {
-            calculateLCS(listOf("A", "B", "C"), listOf("D", "E"), first, second)
             assertContentEquals(
-                diffOutput(convertActionsToUnifiedDiffOutput(listOf("A", "B", "C"), listOf("D", "E"), first, second)),
+                diffOutput(computeDiff(listOf("A", "B", "C"), listOf("D", "E"), command)),
                 listOf(
                     "@@ -1,3 +1,2 @@",
                     "-A",
@@ -244,9 +223,8 @@ internal class TestDiff {
 
         @Test
         fun deleteFirstAndAddDoubleLine() {
-            calculateLCS(listOf("A", "B", "C"), listOf("B", "B"), first, second)
             assertContentEquals(
-                diffOutput(convertActionsToUnifiedDiffOutput(listOf("A", "B", "C"), listOf("B", "B"), first, second)),
+                diffOutput(computeDiff(listOf("A", "B", "C"), listOf("B", "B"), command)),
                 listOf(
                     "@@ -1,3 +1,2 @@",
                     "-A",
@@ -261,19 +239,16 @@ internal class TestDiff {
 
     @Nested
     inner class GroupTestSideBySideOutput {
-        private val first = Array(3) { Operation.KEEP }
-        private val second = Array(2) { Operation.KEEP }
+        private val command = Command(mutableMapOf("two-columns" to true))
 
         @Test
         fun deleteCenterLine() {
-            calculateLCS(listOf("A", "B", "C"), listOf("A", "C"), first, second)
             assertContentEquals(
                 diffOutput(
-                    convertActionsToSideBySideOutput(
+                    computeDiff(
                         listOf("A", "B", "C"),
                         listOf("A", "C"),
-                        first,
-                        second
+                        command
                     )
                 ),
                 listOf(
@@ -286,9 +261,8 @@ internal class TestDiff {
 
         @Test
         fun changeLastLine() {
-            calculateLCS(listOf("A", "B", "C"), listOf("B", "D"), first, second)
             assertContentEquals(
-                diffOutput(convertActionsToSideBySideOutput(listOf("A", "B", "C"), listOf("B", "D"), first, second)),
+                diffOutput(computeDiff(listOf("A", "B", "C"), listOf("B", "D"), command)),
                 listOf(
                     "A        <",
                     "B          B",
@@ -299,9 +273,8 @@ internal class TestDiff {
 
         @Test
         fun deleteFirstAndAddLastLine() {
-            calculateLCS(listOf("A", "B", "C"), listOf("C", "A"), first, second)
             assertContentEquals(
-                diffOutput(convertActionsToSideBySideOutput(listOf("A", "B", "C"), listOf("C", "A"), first, second)),
+                diffOutput(computeDiff(listOf("A", "B", "C"), listOf("C", "A"), command)),
                 listOf(
                     "A        <",
                     "B        <",
@@ -313,9 +286,8 @@ internal class TestDiff {
 
         @Test
         fun deleteAllAndAddAllLines() {
-            calculateLCS(listOf("A", "B", "C"), listOf("D", "E"), first, second)
             assertContentEquals(
-                diffOutput(convertActionsToSideBySideOutput(listOf("A", "B", "C"), listOf("D", "E"), first, second)),
+                diffOutput(computeDiff(listOf("A", "B", "C"), listOf("D", "E"), command)),
                 listOf(
                     "A        | D",
                     "B        | E",
@@ -326,9 +298,8 @@ internal class TestDiff {
 
         @Test
         fun deleteFirstAndAddDoubleLine() {
-            calculateLCS(listOf("A", "B", "C"), listOf("B", "B"), first, second)
             assertContentEquals(
-                diffOutput(convertActionsToSideBySideOutput(listOf("A", "B", "C"), listOf("B", "B"), first, second)),
+                diffOutput(computeDiff(listOf("A", "B", "C"), listOf("B", "B"), command)),
                 listOf(
                     "A        <",
                     "B          B",
