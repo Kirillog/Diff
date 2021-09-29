@@ -1,14 +1,12 @@
 import java.io.File
 import java.io.IOException
-import java.util.*
-import kotlin.system.exitProcess
 
 const val FLAG = '-'
 
 data class Command(
     var options: MutableMap<String, Boolean>,
-    var originalFileName: String,
-    var newFileName: String,
+    var originalFileName: String = "",
+    var newFileName: String = "",
     var unifiedBorder: Int = 3
 )
 
