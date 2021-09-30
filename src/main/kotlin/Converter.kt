@@ -1,3 +1,7 @@
+/**
+ * converts [oldFileActions] and [newFileActions] for lines [oldFileLines] and [newFileLines] to unified, two-columns or standard diff outputs
+ * call [unifiedDiffOutput], [twoColumnsOutput] or [diffOutput] to get them respectively
+ */
 class Converter(
     private val oldFileLines: List<String>,
     private val newFileLines: List<String>,
@@ -13,6 +17,7 @@ class Converter(
     data class Segment(var left: Int, var right: Int) {
 
         fun isEmpty(): Boolean = left > right
+
         override fun toString(): String {
             return if (left == right)
                 left.toString()
@@ -20,6 +25,9 @@ class Converter(
                 "$left,$right"
         }
 
+        /**
+         * moves [fileIterator] so [left, right] is segment of equal operations from [fileActions]
+         */
         fun goNext(fileActions: Array<Operation>, fileIterator: Int): Int {
             var it = fileIterator
             left = it + 1
@@ -31,19 +39,27 @@ class Converter(
         }
     }
 
+    /**
+     * stores changed segments: from [oldFileSegment] to [newFileSegment]
+     */
     data class ChangeSegment(val oldFileSegment: Segment, val newFileSegment: Segment)
 
+    /**
+     * stores blocks of changes with context lines
+     */
     data class Block(
         val oldFileSegment: Segment,
         val newFileSegment: Segment,
         val output: MutableList<Line> = mutableListOf()
     ) {
 
-        fun addLine(line: Line) {
-            output.add(line)
-        }
+        fun addLine(line: Line) = output.add(line)
 
         fun isEmpty() = output.isEmpty()
+
+        /**
+         * returns the result of merge self with [nextBlock] and appropriate lines from [oldFileLines]
+         */
 
         fun merge(nextBlock: Block, oldFileLines: List<String>): Block {
             val result = Block(
@@ -58,15 +74,27 @@ class Converter(
         }
     }
 
+    /**
+     * adds Line([text], [operation]) to diffOutput
+     */
     private fun addLine(text: String, operation: Operation) =
         diffOutput.add(Line(text, operation))
 
+    /**
+     * adds [command] of delete operation and deleted lines of [segment] from old file to diffOutput
+     */
     private fun deleteFromOld(command: String, segment: Segment) =
         addToDiff(segment, oldFileLines, command, "< ", Operation.DELETE)
 
+    /**
+     * adds [command] of add operation and added lines of [segment] from new file to duffOutput
+     */
     private fun addToNew(command: String, segment: Segment) =
         addToDiff(segment, newFileLines, command, "> ", Operation.ADD)
 
+    /**
+     * adds [command] of info operation and [lines] of [segment] with leading [symbol] to diffOutput
+     */
     private fun addToDiff(
         segment: Segment,
         lines: List<String>,
@@ -82,7 +110,7 @@ class Converter(
     /**
      * Form changed segments Operation.KEEP, [ Operation.ADD/Operation.DELETE/Operation.CHANGE ], Operation.KEEP between keep operations in each file
      */
-    private fun convertActionsToSegments() :List<ChangeSegment> {
+    private fun convertActionsToSegments(): List<ChangeSegment> {
         val segments = mutableListOf<ChangeSegment>()
         var oldFileIterator = 0
         var newFileIterator = 0
@@ -193,7 +221,7 @@ class Converter(
      * and deletion lines are preceded by a minus sign.
      * A hunk begins with range information: @@ -l,s +l,s @@, where l is number of line in file and s is length of hunk
      */
-    fun unifiedDiffOutput(unifiedBorder:Int): List<Line> {
+    fun unifiedDiffOutput(unifiedBorder: Int): List<Line> {
         val outputBlocks = convertSegmentsToBlocks(unifiedBorder)
         outputBlocks.forEach { block ->
             // calculate left border and right border of common lines of block
