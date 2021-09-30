@@ -10,9 +10,10 @@ data class Command(
     var unifiedBorder: Int = 3
 )
 
-/** reads program arguments from input
- *@param args array of arguments
- *@return data class Command that stores options and file names
+/**
+ * reads program arguments from input
+ * @param args array of arguments
+ * @return data class Command that stores options and file names
  */
 
 fun parseArguments(args: Array<String>): Command {
@@ -73,7 +74,8 @@ fun parseArguments(args: Array<String>): Command {
     return Command(options, originalFileName, newFileName, unifiedBorder)
 }
 
-/** return list of lines of [fileName] line by line
+/**
+ * return list of lines of [fileName] line by line
  */
 fun readFile(fileName: String): List<String> {
     val lineList = mutableListOf<String>()

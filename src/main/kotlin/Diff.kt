@@ -4,8 +4,8 @@ enum class Operation {
 
 data class Line(val text: String, val command: Operation)
 
-/**computes different types of diff output for [oldFileLines] and [newFileLines] depending on enabled [command] options
- *
+/**
+ * computes different types of diff output for [oldFileLines] and [newFileLines] depending on enabled [command] options
  */
 
 fun computeDiff(oldFileLines: List<String>, newFileLines: List<String>, command: Command): List<Line> {
@@ -33,8 +33,9 @@ fun computeDiff(oldFileLines: List<String>, newFileLines: List<String>, command:
     }
 }
 
-/**prints normal [diffOutput]
- *@param command defines whether output be brief or color
+/**
+ * prints normal [diffOutput]
+ * @param command defines whether output be brief or color
  */
 fun printDiff(diffOutput: List<Line>, command: Command) {
     when {

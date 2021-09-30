@@ -58,9 +58,8 @@ The standard output for unified diff command:
 
 where each range is of the format ```l,s``` where l is the starting line number and s is the number of lines the change hunk applies to for each respective file
 
+Testing
 ---
-##Testing
-
 You can find module tests in ```src/test/kotlin``` for all functions.
 
 And there are pairs of files in ```src/files``` to check the whole program. For example,
